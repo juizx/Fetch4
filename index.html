@@ -1,72 +1,342 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <!-- 
-      This is an HTML comment
-      You can write text in a comment and the content won't be visible in the page
-    -->
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie Search</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/clappr/0.3.1/clappr.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            background: #000000;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            position: relative;
+            overflow: auto; 
+            transition: overflow 0.3s ease; 
+        }
 
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="https://glitch.com/favicon.ico" />
+        body.no-scroll {
+            overflow: hidden; 
+        }
 
-    <!--
-      This is the page head - it contains info the browser uses
-      Like the title, which appears on the browser tab but not inside the page
-      Further down you'll see the content that displays in the page
-    -->
-    <title>Hello World!</title>
+        h1 {
+            margin: 0; 
+            margin-bottom: 20px;
+            color: #ff4081;
+            font-size: 3em;
+            position: relative; 
+            z-index: 10; 
+        }
 
-    <!-- The website stylesheet -->
-    <link rel="stylesheet" href="/style.css" />
+        .search-container {
+            width: 100%;
+            max-width: 700px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            z-index: 10; 
+        }
 
-    <!-- The website JavaScript file -->
-    <script src="/script.js" defer></script>
-  </head>
-  <body>
-    <!--
-      The body includes the content you see in the page
-      Each element is defined using tags, like this <div></div>
-      The attributes like class="wrapper" let us style elements in the CSS
-    -->
-    <div class="wrapper">
-      <div class="content" role="main">
-        <h1 class="title">Hello World!</h1>
-        <img
-          src="https://cdn.glitch.com/a9975ea6-8949-4bab-addb-8a95021dc2da%2Fillustration.svg?v=1618177344016"
-          class="illustration"
-          alt="Editor illustration"
-          title="Click the image!"
-        />
-        <div class="instructions">
-          <h2>Using this project</h2>
-          <p>
-            This is the Glitch <strong>Hello Website</strong> project. You can
-            use it to build your own site. Check out the code in the editor and open
-            the <span class="fileopener" data-file="TODO.md" data-line="0"
-              >TODO</span> for next steps!
-          </p>
-          <!--  🚧 TODO: ADD BUTTON HERE -->
+        input {
+            padding: 15px;
+            border: 2px solid #ff8c00;
+            border-radius: 30px;
+            width: 100%;
+            font-size: 1.2em;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            text-align: center;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
 
-          <!-- Once you've added the button from TODO.md, click it in the page -->
-          <!-- Check out the function in script.js to see how it works -->
-        </div>
-      </div>
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        input:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: #ff4081; 
+            box-shadow: 0 0 15px rgba(255, 64, 129, 0.5), 0 0 10px rgba(0, 0, 0, 0.5);
+            transform: scale(1.05);
+        }
+
+        input:hover {
+            border-color: #ff2366;
+        }
+
+        .results {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 20px;
+            max-height: 500vh;
+            opacity: 0;
+            transition: opacity 0.6s ease-in-out;
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            visibility: hidden;
+        }
+
+        .item {
+            width: 245px;
+            height: 345px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .item:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        .item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .item:hover img {
+            transform: scale(1.05);
+        }
+
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;  
+            height: 100vh;  
+            background: rgba(0, 0, 0, 0.9); 
+            display: none;  
+            align-items: center; 
+            justify-content: center; 
+            z-index: 9999; 
+            margin: 0; 
+            padding: 0; 
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 15px;
+            background: none;
+            border: none;
+            color: #ff8c00;
+            font-size: 3em;
+            cursor: pointer;
+            z-index: 10000;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: #ff4081;
+        }
+
+        #fetching-message {
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            color: #ff4081; 
+            font-size: 2em; 
+            z-index: 10001;
+        }
+
+        /* Blur overlay */
+        .blur-overlay {
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0, 0, 0, 0.7); 
+            backdrop-filter: blur(5px); 
+            z-index: 10000;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+
+        @media (max-width: 768px) {
+            .item {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Movie Search</h1>
+    <div class="search-container">
+        <input type="text" id="search" placeholder="Search for a movie..." />
     </div>
-    <!-- The footer holds our remix button — you can keep or delete it ✂ -->
-    <footer class="footer">
-      <div class="links"></div>
-      <a
-        class="btn--remix"
-        target="_top"
-        href="https://glitch.com/edit/#!/remix/glitch-hello-website"
-      >
-        <img
-          src="https://cdn.glitch.com/605e2a51-d45f-4d87-a285-9410ad350515%2FLogo_Color.svg?v=1618199565140"
-          alt=""
-        />
-        Remix on Glitch
-      </a>
-    </footer>
-  </body>
+    <div class="results" id="results"></div>
+    <div class="blur-overlay" id="blur-overlay">
+        <button class="back-button" onclick="closeFullscreen()">X</button>
+        <div id="fetching-message">Fetching video...</div>
+    </div>
+
+    <div class="video-container" id="video-container">
+        <button class="back-button" onclick="closeFullscreen()">X</button>
+        <iframe id="videoFrame" style="display:none; width: 100%; height: 100%; border: none;"></iframe>
+    </div>
+
+    <script>
+        const apiKey = "d13abf16ac8e223ca6b73612cc10878d"; // Replace with your TMDB API key
+        let cache = {}; // Cache for movie search results
+        let throttledTimeout; // For handling throttling of API requests
+        let abortController; // Variable to keep track of the AbortController
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetchTrendingMovies();
+            document.getElementById('blur-overlay').style.display = 'none';
+            document.getElementById('video-container').style.display = 'none';
+        });
+
+        document.getElementById("search").addEventListener("input", function () {
+            clearTimeout(throttledTimeout);
+            throttledTimeout = setTimeout(() => {
+                searchMovies(this.value);
+            }, 300); // Throttle input events
+        });
+
+        async function fetchTrendingMovies() {
+            const url = `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=en-US`;
+            const response = await fetch(url);
+            const data = await response.json();
+            displayResults(data.results);
+        }
+
+        async function searchMovies(query) {
+            if (!query) {
+                fetchTrendingMovies();
+                return;
+            }
+
+            if (cache[query]) {
+                displayResults(cache[query]);
+                return;
+            }
+
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            cache[query] = data.results;
+            displayResults(data.results);
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = "";
+            const MIN_RATING = 6;
+            const MIN_YEAR = 2010;
+            let hasResults = false;
+
+            results.forEach((item) => {
+                const releaseDate = new Date(item.release_date);
+                const releaseYear = releaseDate.getFullYear();
+
+                if (
+                    item.poster_path &&
+                    item.vote_average >= MIN_RATING &&
+                    releaseYear >= MIN_YEAR
+                ) {
+                    hasResults = true;
+
+                    const itemDiv = document.createElement("div");
+                    itemDiv.className = "item";
+                    itemDiv.innerHTML = `
+                        <img src="https://image.tmdb.org/t/p/w500${item.poster_path}" 
+                             alt="${item.title}" 
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/200';" 
+                             loading="lazy" 
+                             onclick="playMovie(${item.id})">
+                    `;
+                    resultsDiv.appendChild(itemDiv);
+                }
+            });
+
+            if (hasResults) {
+                resultsDiv.style.visibility = "visible";
+                resultsDiv.style.opacity = 1; 
+            } else {
+                resultsDiv.style.visibility = "hidden"; 
+                resultsDiv.style.opacity = 0; 
+                resultsDiv.innerHTML = "<p>No highly rated movies found.</p>";
+            }
+        }
+
+        async function fetchVideoLink(tmdbId) {
+            if (abortController) {
+                abortController.abort(); // Abort the previous request if it exists
+            }
+            abortController = new AbortController(); // Create a new controller instance
+
+            const apiUrl = `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${apiKey}`;
+            const response = await fetch(apiUrl);
+            const movieData = await response.json();
+
+            const title = encodeURIComponent(movieData.title);
+            const year = movieData.release_date.split('-')[0];
+            const fetchUrl = `https://api.braflix.is/vidcloud/sources-with-title?title=${title}&year=${year}&mediaType=movie&episodeId=1&seasonId=1&tmdbId=${tmdbId}`;
+
+            const videoResponse = await fetch(fetchUrl, { signal: abortController.signal });
+            const videoData = await videoResponse.text();
+
+            return videoData.trim(); 
+        }
+
+        async function playMovie(id) {
+            const blurOverlay = document.getElementById('blur-overlay');
+            const fetchingMessage = document.getElementById('fetching-message');
+
+            blurOverlay.style.display = 'flex';
+            fetchingMessage.style.display = 'block';
+
+            const videoLink = await fetchVideoLink(id);
+            
+            blurOverlay.style.display = 'none';
+            fetchingMessage.style.display = 'none';
+
+            if (videoLink) {
+                const videoFrame = document.getElementById('videoFrame');
+                videoFrame.src = videoLink;
+                videoFrame.style.display = 'block';
+
+                document.getElementById('video-container').style.display = 'flex';
+                document.body.classList.add('no-scroll'); 
+            } else {
+                alert('No video found for this movie.');
+            }
+        }
+
+        function closeFullscreen() {
+            document.getElementById('video-container').style.display = 'none';
+            document.body.classList.remove('no-scroll');
+            const videoFrame = document.getElementById('videoFrame');
+            videoFrame.style.display = 'none'; 
+            videoFrame.src = '';
+
+            document.getElementById('blur-overlay').style.display = 'none';
+            document.getElementById('fetching-message').style.display = 'none';
+
+            if (abortController) {
+                abortController.abort(); // Abort the fetch request if it is still ongoing
+            }
+        }
+    </script>
+</body>
 </html>
